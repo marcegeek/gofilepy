@@ -158,6 +158,26 @@ class GofileClient (object):
 
         return resp.content
 
+    def _download_file_from_web_link(self, link, out_dir="./"):
+        fn = link.rsplit('/', 1)[1]
+        resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
+        if resp.status_code != 200:
+            raise GofileAPIException("Could not download file", code=resp.status_code)
+
+        out_path = os.path.join(out_dir, fn)
+        with open(out_path, 'wb') as f:
+            for chunk in resp.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        return out_path
+
+    def _download_bytes_from_web_link(self, link):
+        resp = requests.get(link, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
+        if resp.status_code != 200:
+            raise GofileAPIException("Could not download file", code=resp.status_code)
+
+        return resp.content
+
 
     def _get_token(self, token):
         if not token:
@@ -556,6 +576,7 @@ class GofileFile (GofileContent):
         self.download_cnt = None
         self.mimetype = None
         self.server = None
+        self.link = None
         self.page_link = None
         self.md5 = None
         self.direct_links = []
@@ -570,6 +591,7 @@ class GofileFile (GofileContent):
         self.mimetype = data.get("mimetype", self.mimetype)
         self.md5 = data.get("md5", self.md5)
         self.server = data.get("serverChoosen", None)
+        self.link = data.get("link", None)
         direct_links = data.get("directLinks", [])
         for link_data in direct_links:
             GofileFileDirectLink._load_from_dict(link_data, file=self)
@@ -591,20 +613,22 @@ class GofileFile (GofileContent):
         return data
 
     def download(self, out_dir: str = "./") -> str:
-        """Downloads file to passed dir (default is working directory).
-           Note: The option directLink needs to be True (Premium)"""
+        """Downloads file to passed dir (default is working directory)."""
 
         if self.direct_links:
             return self._client._download_file_from_direct_link(self.direct_links[0].link, out_dir=out_dir)
+        elif self.link:
+            return self._client._download_file_from_web_link(self.link, out_dir=out_dir)
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
     def download_bytes(self) -> bytes:
-        """Downloads file as bytes.
-           Note: The option directLink needs to be True (Premium)"""
+        """Downloads file as bytes."""
 
         if self.direct_links:
             return self._client._download_bytes_from_direct_link(self.direct_links[0].link)
+        elif self.link:
+            return self._client._download_bytes_from_web_link(self.link)
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
