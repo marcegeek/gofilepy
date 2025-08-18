@@ -124,6 +124,13 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
+    def _download_bytes_from_direct_link(self, direct_link):
+        resp = requests.get(direct_link, allow_redirects=None)
+        if resp.status_code != 200:
+            raise GofileAPIException("Could not download file", code=resp.status_code)
+
+        return resp.content
+
 
     def _get_token(self, token):
         if not token:
@@ -556,14 +563,22 @@ class GofileFile (GofileContent):
         return data
 
     def download(self, out_dir: str = "./") -> str:
-        """Downloads file to passed dir (default is working directory). Note: The option directLink
-          \needs to be True (Premium)"""
+        """Downloads file to passed dir (default is working directory).
+           Note: The option directLink needs to be True (Premium)"""
 
         if self.direct_links:
             return self._client._download_file_from_direct_link(self.direct_links[0].link, out_dir=out_dir)
-
         else:
-            raise Exception("Direct link needed - set option directLink=True (only for premium users)") 
+            raise Exception("Direct link needed - set option directLink=True (only for premium users)")
+
+    def download_bytes(self) -> bytes:
+        """Downloads file as bytes.
+           Note: The option directLink needs to be True (Premium)"""
+
+        if self.direct_links:
+            return self._client._download_bytes_from_direct_link(self.direct_links[0].link)
+        else:
+            raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
 
 
