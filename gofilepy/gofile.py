@@ -258,8 +258,7 @@ class GofileClient (object):
            If token is default self.account is updated"""
         token = self._get_token(token)
         resp, data = self._get_account_raw_resp(token=token)
-        account = GofileAccount._load_from_account_id(data["id"], token)
-        account._client = self
+        account = GofileAccount._load_from_account_id(data["id"], token, client=self)
         account._raw = data
 
         if account.token == self.token:
@@ -331,6 +330,8 @@ class GofileAccount (object):
     """Tier of GofileAccount either Standard or Premium"""
     root_id: str
     """Root folder's content_id of Gofile account"""
+    root_folder: GofileFolder
+    """Root folder object"""
     folder_cnt: int
     """Number of children folders"""
     file_cnt: int
@@ -340,15 +341,17 @@ class GofileAccount (object):
     total_download_cnt: int
     """Total download count of Accounts' contents"""
 
-    def __init__(self, token: str = None):
+    def __init__(self, token: str = None, client: GofileClient = None):
         self.token = token
         self.email = None
         self.tier = None
         self.root_id = None
+        self.root_folder = None
         self.folder_cnt = None
         self.file_cnt = None
         self.total_size = None
         self.total_download_cnt = None
+        self._client = client
         self._raw = {}
 
     def _override_from_dict(self, data: dict) -> None:
@@ -356,6 +359,7 @@ class GofileAccount (object):
         self.email = data.get("email", self.email)
         self.tier = data.get("tier", self.tier)
         self.root_id = data.get("rootFolder", self.root_id)
+        self.root_folder = self._get_root_folder()
         self.folder_cnt = data.get("statsCurrent", {}).get("foldersCount", self.folder_cnt)
         self.file_cnt = data.get("statsCurrent", {}).get("filesCount", self.file_cnt)
         self.total_size = data.get('statsCurrent', {}).get("storage", self.total_size)
@@ -363,27 +367,33 @@ class GofileAccount (object):
 
         self._raw = data
 
+    def _get_root_folder(self):
+        try:
+            return self._client.get_folder(self.root_id)
+        except:
+            return None
+
     @staticmethod
-    def _load_from_account_id(account_id: str, token: str):
+    def _load_from_account_id(account_id: str, token: str, client: GofileClient = None):
         headers = GofileClient.create_authorization_header(token) 
         resp = requests.get(
             GofileClient._API_ROUTE_GET_ACCOUNT_URL.format(account_id),
             headers=headers
         )
         data = GofileClient.handle_response(resp)
-        return GofileAccount._load_from_dict(data)
-
+        return GofileAccount._load_from_dict(data, client=client)
 
     @staticmethod
-    def _load_from_dict(data: dict):
-        account = GofileAccount(data["token"])
+    def _load_from_dict(data: dict, client: GofileClient = None):
+        account = GofileAccount(data["token"], client=client)
         account._override_from_dict(data)
         return account
-    
+
     def reload(self):
         resp, data = self._client._get_account_raw_resp(token=self.token)
         self._override_from_dict(data)
         self._raw = data
+
 
 class GofileContent (object):
     name: str
