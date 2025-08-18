@@ -1,6 +1,8 @@
+import re
 import requests
 import os
 from io import BufferedReader
+from bs4 import BeautifulSoup
 from .exceptions import GofileAPIException
 from .options import FileOption, FolderOption, ContentOption
 
@@ -9,11 +11,15 @@ GofileFile = None
 GofileFolder = None
 GofileAccount = None
 
+
 class GofileClient (object):
     server = None
     _BASE_DOMAIN = 'gofile.io'
     _API_SUBDOMAIN = 'api'
     _BASE_API_URL = 'https://'+_API_SUBDOMAIN+'.'+_BASE_DOMAIN
+    _BASE_WEB_URL = 'https://'+_BASE_DOMAIN
+    _WEBTOKEN_REGEX = re.compile(r'\bwt\s*=\s*"(.+)"')
+    _WEBTOKEN = None
 
     _API_ROUTE_GET_SERVER_URL = _BASE_API_URL + '/servers'
 
@@ -45,6 +51,27 @@ class GofileClient (object):
 
         if get_account and token:
             self.get_account()
+
+    @classmethod
+    def _get_webtoken(cls):
+        resp = requests.get(cls._BASE_WEB_URL)
+        if resp.status_code != 200:
+            raise Exception("no gofile base")
+        html = resp.text
+        soup = BeautifulSoup(html, features='html.parser')
+        scripts = soup.find_all('script')
+        for script in scripts:
+            content = None
+            src = script.get('src')
+            if src and src.startswith('/'):
+                src = f'{cls._BASE_WEB_URL}{src}'
+                content = requests.get(src).text
+            elif not src:
+                content = script.text
+            if content:
+                match = cls._WEBTOKEN_REGEX.search(content)
+                if match:
+                    return match.group(1)
 
     @staticmethod
     def create_authorization_header(token):
@@ -173,7 +200,7 @@ class GofileClient (object):
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
 
-        resp = requests.get(self._API_ROUTE_GET_CONTENT_URL.format(content_id), headers=headers)
+        resp = requests.get(self._API_ROUTE_GET_CONTENT_URL.format(content_id) + f'?wt={self._WEBTOKEN}', headers=headers)
         data = GofileClient.handle_response(resp)
         return resp, data
 
@@ -208,7 +235,7 @@ class GofileClient (object):
 
     def get_account(self, token: str = None) -> GofileAccount:
         """If token is provided returns specified account, otherwise token defaults to self.token.
-          \If token is default self.account is updated"""
+           If token is default self.account is updated"""
         token = self._get_token(token)
         resp, data = self._get_account_raw_resp(token=token)
         account = GofileAccount._load_from_account_id(data["id"], token)
@@ -273,6 +300,7 @@ class GofileClient (object):
         got = GofileClient.handle_response(resp)
 
         return GofileContent.__init_from_resp__(resp, client=self) 
+GofileClient._WEBTOKEN = GofileClient._get_webtoken()
 
 class GofileAccount (object):
     token: str
