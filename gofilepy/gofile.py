@@ -612,17 +612,12 @@ class GofileFolder (GofileContent):
     def __init_children_from_contents__(self, data: dict) -> None:
         children = []
 
-        self.children_ids = data.get("childs")
-        contents = data.get("contents", {})
+        contents = data.get("children", {})
+        self.children_ids = list(contents.keys())
 
         if contents.keys():
             for content in contents.values():
                 child = GofileContent.__init_from_resp__({"data": content}, client=self._client)
-                children.append(child)
-
-        elif self.children_ids:
-            for child_id in self.children_ids:
-                child = GofileContent(child_id, parent_id=data["id"], client=self._client)
                 children.append(child)
         return children
 
@@ -640,7 +635,7 @@ class GofileFolder (GofileContent):
         self.code = data.get("code", self.code)
         self.total_size = data.get("totalSize", self.total_size)
         self.total_download_cnt = data.get("totalDownloadCount", self.total_download_cnt)
-        self.children_ids = data.get("childs")
+        self.children_ids = data.get("children")
         self.children = self.__init_children_from_contents__(data)
 
         self.tags = data.get("tags", "").split(",")
