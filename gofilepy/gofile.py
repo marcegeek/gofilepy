@@ -412,7 +412,7 @@ class GofileContent (object):
         
         elif (self.is_unknown_type or self.is_file_type) and self.parent_id:
             resp, data = self._client._get_content_raw_resp(self.parent_id)
-            content_data = data["contents"].get(self.content_id, None)
+            content_data = data["children"].get(self.content_id, None)
 
             if content_data:
                 if self.is_unknown_type:
