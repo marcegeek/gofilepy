@@ -40,6 +40,8 @@ class GofileClient (object):
 
     _API_STORE_FORMAT = "https://{}.{}/{}"
 
+    _API_WEB_LINK_FORMAT = "https://{}.{}/download/web/{}/{}"
+
     def __init__(self, zone: str = "na", token: str = None, get_account: bool = True, verbose: bool = False):
         self.token = token
         if token:
@@ -158,6 +160,10 @@ class GofileClient (object):
 
         return resp.content
 
+    @classmethod
+    def _get_download_web_link(cls, server, content_id, name):
+        return cls._API_WEB_LINK_FORMAT.format(server, cls._BASE_DOMAIN, content_id, name)
+
     def _download_file_from_web_link(self, link, out_dir="./"):
         fn = link.rsplit('/', 1)[1]
         resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
@@ -177,7 +183,6 @@ class GofileClient (object):
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
         return resp.content
-
 
     def _get_token(self, token):
         if not token:
@@ -212,6 +217,7 @@ class GofileClient (object):
         #Needed because json returned from API has different key values at this endpoint
         got["id"] = got.get("id", None)
         got["name"] = got.get("name", None)
+        got["serverSelected"] = got.get("servers", [None])[-1]
 
         return  GofileFile._load_from_dict(got, client=self)
     
@@ -600,8 +606,8 @@ class GofileFile (GofileContent):
         self.download_cnt = data.get("downloadCount", self.download_cnt)
         self.mimetype = data.get("mimetype", self.mimetype)
         self.md5 = data.get("md5", self.md5)
-        self.server = data.get("serverChoosen", None)
-        self.link = data.get("link", None)
+        self.server = data.get("serverSelected", None)
+        self.link = data.get("link", self._client._get_download_web_link(self.server, self.content_id, self.name) if self.server is not None else None)
         direct_links = data.get("directLinks", [])
         for link_data in direct_links:
             GofileFileDirectLink._load_from_dict(link_data, file=self)
