@@ -7,6 +7,7 @@ from .exceptions import GofileAPIException
 from .options import FileOption, FolderOption, ContentOption
 
 
+GofileClient = None
 GofileFile = None
 GofileFolder = None
 GofileAccount = None
@@ -23,6 +24,7 @@ class GofileClient (object):
 
     _API_ROUTE_GET_SERVER_URL = _BASE_API_URL + '/servers'
 
+    _API_ROUTE_CREATE_ACCOUNT_URL = _BASE_API_URL + "/accounts"
     _API_ROUTE_GET_ACCOUNT_URL = _BASE_API_URL + "/accounts/{}"
     _API_ROUTE_GET_ACCOUNT_ID_URL = _BASE_API_URL + "/accounts/getid"
 
@@ -53,6 +55,20 @@ class GofileClient (object):
 
         if get_account and token:
             self.get_account()
+
+    @classmethod
+    def create_guest_account(cls) -> GofileAccount:
+        """Creates a new guest account."""
+
+        resp = requests.post(cls._API_ROUTE_CREATE_ACCOUNT_URL)
+        return GofileAccount._load_from_dict(cls.handle_response(resp))
+
+    @classmethod
+    def create_as_guest(cls) -> GofileClient:
+        """Creates a GofileClient with a new guest account."""
+
+        guest = cls.create_guest_account()
+        return cls(token=guest.token)
 
     @classmethod
     def _get_webtoken(cls):
