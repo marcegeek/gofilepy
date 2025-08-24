@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools >= 61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gofilepy-api"
+version = "0.2.10"
+dependencies = [
+    "requests",
+]
+requires-python = ">=3.10"
+authors = [
+    {name = "m0bb1n", email = "99den0@gmail.com"},
+]
+description = "A python wrapper for Gofile REST API"
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/m0bb1n/gofilepy"
+Documentation = "https://m0bb1n.github.io/gofilepy/"
+
+[tool.setuptools]
+packages = ["gofilepy"]
+
+[tool.flake8]
+exclude = [".git", "venv", ".venv"]
+count = true
+statistics = true
+
+[tool.ruff.lint.per-file-ignores]
+# ignores for tests, expanded from https://github.com/astral-sh/ruff/issues/4368
+"tests/**/*.py" = [
+    "S101", # asserts allowed in tests...
+    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
+    "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+    "PLR2004", # Magic value used in comparison
+    "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "ANN", # Don't check missing annotations
+    "D", # Missing docstrings
+]
+
+[tool.mypy]
+exclude = [
+    "tests",
+]
+pretty = true
+strict = true
+
+[tool.coverage.run]
+# Measure branch coverage
+branch = true
+source = [
+    ".",
+]
+
+# Files and directories to omit from coverage
+omit = [
+    "tests/*",
+    "venv/*",
+    ".venv/*",
+]

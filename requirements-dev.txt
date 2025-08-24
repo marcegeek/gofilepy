@@ -1,0 +1,13 @@
+# include global dependencies
+.
+
+# unit testing and coverage collection
+coverage
+pytest
+pytest-cov
+
+# static analysis
+flake8
+Flake8-pyproject
+mypy
+ruff
