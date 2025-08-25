@@ -33,7 +33,7 @@ class GofileClient (object):
 
     _API_STORE_FORMAT = "https://{}.{}/{}"
 
-    def __init__(self, zone: str = "na", token: str = None, get_account: bool = True, verbose: bool = False):
+    def __init__(self, zone: str = "na", token: str | None = None, get_account: bool = True, verbose: bool = False):
         self.token = token
         if token:
             self.headers = GofileClient.create_authorization_header(token)
@@ -125,7 +125,7 @@ class GofileClient (object):
                 token = ""
         return token
 
-    def upload(self, path: str = None, file: BufferedReader = None, parent_id: str = None, token: str = None) -> GofileFile:
+    def upload(self, path: str | None = None, file: BufferedReader | None = None, parent_id: str | None = None, token: str | None = None) -> GofileFile:
         if not file and not path:
             raise ValueError("GofileClient.upload() requires a BufferedReader or file path")
 
@@ -154,7 +154,7 @@ class GofileClient (object):
 
         return GofileFile._load_from_dict(got, client=self)
 
-    def _get_content_raw_resp(self, content_id: str, token: str = None):
+    def _get_content_raw_resp(self, content_id: str, token: str | None = None):
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
 
@@ -162,7 +162,7 @@ class GofileClient (object):
         data = GofileClient.handle_response(resp)
         return resp, data
 
-    def get(self, content_id: str, token: str = None):
+    def get(self, content_id: str, token: str | None = None):
         resp, data = self._get_content_raw_resp(content_id, token=token)
         return GofileContent.__init_from_resp__(resp, client=self)
 
@@ -170,7 +170,7 @@ class GofileClient (object):
         """Retrieves folder using content_id"""
         return self.get(*args, **kwargs)
 
-    def delete(self, *content_ids: str, token: str = None):
+    def delete(self, *content_ids: str, token: str | None = None):
         """Calls Gofile API to delete provided content_ids."""
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
@@ -178,7 +178,7 @@ class GofileClient (object):
         resp = requests.delete(GofileClient._API_ROUTE_DELETE_CONTENT_URL, data=data, headers=headers)
         got = GofileClient.handle_response(resp)
 
-    def _get_account_raw_resp(self, token: str = None):
+    def _get_account_raw_resp(self, token: str | None = None):
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
         resp = requests.get(GofileClient._API_ROUTE_GET_ACCOUNT_ID_URL, headers=headers)
@@ -189,7 +189,7 @@ class GofileClient (object):
         """GET ACCOUNT STUFF HERE.  TO GET ACCOUNT INFO U HAVE TO GET ACCOUNT_ID FIRST"""
         pass
 
-    def get_account(self, token: str = None) -> GofileAccount:
+    def get_account(self, token: str | None = None) -> GofileAccount:
         """If token is provided returns specified account, otherwise token defaults to self.token.
            If token is default self.account is updated"""
         token = self._get_token(token)
@@ -203,7 +203,7 @@ class GofileClient (object):
 
         return account
 
-    def set_content_option(self, content_id: str, option: str, value, token: str = None):
+    def set_content_option(self, content_id: str, option: str, value, token: str | None = None):
         """Sets content option like 'description', 'public', etc (more at gofile.io/api).  Note that folder and file content have different options"""
         token = self._get_token(token)
         headers = self.create_authorization_header(token)
@@ -218,7 +218,7 @@ class GofileClient (object):
         resp = requests.put(GofileClient._API_ROUTE_SET_OPTION_URL.format(content_id), data=data, headers=headers)
         got = GofileClient.handle_response(resp)
 
-    def copy_content(self, *content_ids: str, parent_id: str = None, token: str = None):
+    def copy_content(self, *content_ids: str, parent_id: str | None = None, token: str | None = None):
         """Copy provided content_ids to destination folder's content_id.  Currently returns None because api doesn't return any information.  Will have to query parent folder"""
         if not parent_id:
             raise ValueError("Must pass a parent folder id: parent_id=None")
@@ -241,7 +241,7 @@ class GofileClient (object):
         return GofileContent.__init_from_resp__(resp, client=self)
         """
 
-    def create_folder(self, name: str, parent_id: str, token: str = None):
+    def create_folder(self, name: str, parent_id: str, token: str | None = None):
         """Creates folder in specified parent folder's content_id"""
         token = self._get_token(token)
         headers = self.create_authorization_header(token)
@@ -275,7 +275,7 @@ class GofileAccount (object):
     total_download_cnt: int
     """Total download count of Accounts' contents"""
 
-    def __init__(self, token: str = None):
+    def __init__(self, token: str | None = None):
         self.token = token
         self.email = None
         self.tier = None
@@ -338,7 +338,7 @@ class GofileContent (object):
     is_deleted: bool
     """If content is deleted (will only register if called by it's own method delete())"""
 
-    def __init__(self, content_id: str, parent_id: str, _type: str = None, client: GofileClient = None):
+    def __init__(self, content_id: str, parent_id: str, _type: str | None = None, client: GofileClient = None):
         self.content_id = content_id
         self.parent_id = parent_id
         self._type = _type
@@ -423,7 +423,7 @@ class GofileContent (object):
             raise NotImplementedError
 
     @staticmethod
-    def __init_from_resp__(resp: requests.Response, _type: str = None, client: GofileClient = None):
+    def __init_from_resp__(resp: requests.Response, _type: str | None = None, client: GofileClient = None):
         if isinstance(resp, requests.models.Response):
             resp = resp.json()
 
@@ -644,5 +644,5 @@ class GofileFolder (GofileContent):
 
         return folder
 
-    def upload(self, path: str = None, file: BufferedReader = None) -> GofileFile:
+    def upload(self, path: str | None = None, file: BufferedReader | None = None) -> GofileFile:
         return self._client.upload(file=file, path=path, parent_id=self.content_id)
