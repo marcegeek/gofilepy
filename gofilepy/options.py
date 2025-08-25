@@ -22,7 +22,6 @@ class ContentOption (object):
 
         return value
 
-
     @classmethod
     def get_from_str(cls, _str):
         return cls._content_option_map[_str]
@@ -39,11 +38,11 @@ class FileOption (ContentOption):
     _option_value_format = {
     }
 
-
     @classmethod
     def _get_options(cls):
         return [
         ]
+
 
 class FolderOption (ContentOption):
     IS_PUBLIC = "public"
@@ -57,11 +56,11 @@ class FolderOption (ContentOption):
     EXPIRE = "expiry"
     """Expected value is unix timestamp float or int"""
 
-    #map that holds any extra processing to option value
+    # map that holds any extra processing to option value
     _option_value_format = {
-        IS_PUBLIC: lambda value: value.__str__().lower(), #setting IS_PUBLIC requires a lowercase bool string
-        TAGS: lambda value: ",".join(value) if type(value) == list else value,
-        EXPIRE: lambda value: int(value) if type(value) == float else value
+        IS_PUBLIC: lambda value: value.__str__().lower(),  # setting IS_PUBLIC requires a lowercase bool string
+        TAGS: lambda value: ",".join(value) if isinstance(value, list) else value,
+        EXPIRE: lambda value: int(value) if isinstance(value, float) else value
     }
     _option_value_types = {
         IS_PUBLIC: [bool],
@@ -81,6 +80,7 @@ class FolderOption (ContentOption):
             cls.EXPIRE
         ]
 
+
 options_map = {}
 for opt in FileOption._get_options():
     options_map[opt] = FileOption
@@ -89,4 +89,3 @@ for opt in FolderOption._get_options():
     options_map[opt] = FolderOption
 
 ContentOption._content_option_map = options_map
-

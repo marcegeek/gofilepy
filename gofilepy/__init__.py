@@ -12,4 +12,4 @@ __all__ = [
     "exceptions"
 ]
 
-from .gofile import GofileClient, GofileFolder, GofileFile, GofileContent, GofileAccount 
+from .gofile import GofileClient, GofileFolder, GofileFile, GofileContent, GofileAccount

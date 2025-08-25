@@ -1,4 +1,6 @@
 from requests.models import Response
+
+
 class GofileAPIException (Exception):
     """Gofile API throws an unspecified error - create an issue if on github if thrown"""
     def __init__(self, msg, code):
@@ -6,7 +8,7 @@ class GofileAPIException (Exception):
         self.code = code
 
     @classmethod
-    def __init_from_resp__ (cls, resp: Response):
+    def __init_from_resp__(cls, resp: Response):
         code = resp.status_code
         resp = resp.json()
         status = resp['status']
@@ -22,13 +24,13 @@ class GofileAPIException (Exception):
 
         elif status == "error-notPremium":
             return GofileAPINotPremiumAccountError(status)
-        
-        return cls(status, code) 
 
-    def __repr__ (self):
+        return cls(status, code)
+
+    def __repr__(self):
         return "{} {} {}".format(self.__class__, self.code, self.msg)
 
-    def __str__ (self):
+    def __str__(self):
         return self.__repr__()
 
 
@@ -37,15 +39,18 @@ class GofileAPIAuthenticationError (GofileAPIException):
     def __init__(self, msg: str, code: int = 401):
         super().__init__(msg, code)
 
+
 class GofileAPIContentNotFoundError (GofileAPIException):
     """Gofile API throws content not found - content_id is invalid"""
     def __init__(self, msg: str, code: int = 404):
         super().__init__(msg, code)
 
+
 class GofileAPINotOwnerError (GofileAPIException):
     """Gofile API throws not owner of content - content is owned by another user"""
     def __init__(self, msg: str, code: int = 403):
         super().__init__(msg, code)
+
 
 class GofileAPINotPremiumAccountError (GofileAPIException):
     """Gofile API throws not premium account error - upgrade at gofile.io/premium"""

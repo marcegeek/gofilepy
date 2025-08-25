@@ -1,13 +1,12 @@
+from __future__ import annotations
+
 import requests
 import os
 from io import BufferedReader
+
 from .exceptions import GofileAPIException
-from .options import FileOption, FolderOption, ContentOption
+from .options import ContentOption
 
-
-GofileFile = None
-GofileFolder = None
-GofileAccount = None
 
 class GofileClient (object):
     server = None
@@ -25,7 +24,7 @@ class GofileClient (object):
     _API_ROUTE_COPY_CONTENT_URL = _BASE_API_URL + "/contents/copy"
 
     _API_ROUTE_CREATE_FOLDER_URL = _BASE_API_URL + "/contents/createFolder"
-    _API_ROUTE_SET_OPTION_URL = _BASE_API_URL +  "/contents/{}/update"
+    _API_ROUTE_SET_OPTION_URL = _BASE_API_URL + "/contents/{}/update"
 
     _API_ROUTE_CREATE_FILE_DIRECT_LINK_URL = _BASE_API_URL + "/contents/{}/directlinks"
 
@@ -40,7 +39,7 @@ class GofileClient (object):
             self.headers = GofileClient.create_authorization_header(token)
 
         self._servers = GofileClient.get_best_server()
-        self.server = GofileClient.get_preferred_server(zone, self._servers) 
+        self.server = GofileClient.get_preferred_server(zone, self._servers)
         self.verbose = verbose
 
         if get_account and token:
@@ -61,7 +60,6 @@ class GofileClient (object):
             api_status = data.get('status')
             got = data.get('data')
 
-
         if api_status != 'ok' or code != 200:
             raise GofileAPIException.__init_from_resp__(resp)
         return got
@@ -69,13 +67,11 @@ class GofileClient (object):
     def get_best_upload_url(self):
         return self._API_STORE_FORMAT.format(self.server, self._BASE_DOMAIN, self._API_ROUTE_UPLOAD_CONTENT_PATH)
 
-
-
     @staticmethod
     def get_best_server(throw_if_not_200=False):
         resp = requests.get(GofileClient._API_ROUTE_GET_SERVER_URL)
         return GofileClient.handle_response(resp)['servers']
-    
+
     @staticmethod
     def get_preferred_server(zone: str, servers: list, strict: bool = False):
         for sv in servers:
@@ -85,9 +81,7 @@ class GofileClient (object):
         if not strict:
             return servers[0]["name"]
 
-
-
-    def create_file_direct_link(self, content_id, token=None, expire=None, ips_allowed=[], domains_allowed=[], username=None, password=None, file=None):
+    def create_file_direct_link(self, content_id, token=None, expire=None, ips_allowed=(), domains_allowed=(), username=None, password=None, file=None):
         token = self._get_token(token)
         headers = self.create_authorization_header(token)
 
@@ -124,7 +118,6 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-
     def _get_token(self, token):
         if not token:
             token = self.token
@@ -132,7 +125,7 @@ class GofileClient (object):
                 token = ""
         return token
 
-    def upload(self, path: str=None, file: BufferedReader=None, parent_id: str=None, token: str=None) -> GofileFile:
+    def upload(self, path: str = None, file: BufferedReader = None, parent_id: str = None, token: str = None) -> GofileFile:
         if not file and not path:
             raise ValueError("GofileClient.upload() requires a BufferedReader or file path")
 
@@ -155,12 +148,11 @@ class GofileClient (object):
         resp = requests.post(upload_url, files=files, data=data, headers=headers)
         got = GofileClient.handle_response(resp)
 
-        #Needed because json returned from API has different key values at this endpoint
+        # Needed because json returned from API has different key values at this endpoint
         got["id"] = got.get("id", None)
         got["name"] = got.get("name", None)
 
-        return  GofileFile._load_from_dict(got, client=self)
-    
+        return GofileFile._load_from_dict(got, client=self)
 
     def _get_content_raw_resp(self, content_id: str, token: str = None):
         token = self._get_token(token)
@@ -170,9 +162,8 @@ class GofileClient (object):
         data = GofileClient.handle_response(resp)
         return resp, data
 
-
     def get(self, content_id: str, token: str = None):
-        resp,data = self._get_content_raw_resp(content_id, token=token)
+        resp, data = self._get_content_raw_resp(content_id, token=token)
         return GofileContent.__init_from_resp__(resp, client=self)
 
     def get_folder(self, *args, **kwargs):
@@ -189,11 +180,10 @@ class GofileClient (object):
 
     def _get_account_raw_resp(self, token: str = None):
         token = self._get_token(token)
-        headers = GofileClient.create_authorization_header(token) 
+        headers = GofileClient.create_authorization_header(token)
         resp = requests.get(GofileClient._API_ROUTE_GET_ACCOUNT_ID_URL, headers=headers)
         data = GofileClient.handle_response(resp)
         return resp, data
-
 
     def get_account_id(self):
         """GET ACCOUNT STUFF HERE.  TO GET ACCOUNT INFO U HAVE TO GET ACCOUNT_ID FIRST"""
@@ -201,7 +191,7 @@ class GofileClient (object):
 
     def get_account(self, token: str = None) -> GofileAccount:
         """If token is provided returns specified account, otherwise token defaults to self.token.
-          \If token is default self.account is updated"""
+           If token is default self.account is updated"""
         token = self._get_token(token)
         resp, data = self._get_account_raw_resp(token=token)
         account = GofileAccount._load_from_account_id(data["id"], token)
@@ -209,7 +199,7 @@ class GofileClient (object):
         account._raw = data
 
         if account.token == self.token:
-            self.account = account #update client's copy of account
+            self.account = account  # update client's copy of account
 
         return account
 
@@ -218,7 +208,7 @@ class GofileClient (object):
         token = self._get_token(token)
         headers = self.create_authorization_header(token)
 
-        value = ContentOption._process_option_value(option, value) #checks file types and formats for api
+        value = ContentOption._process_option_value(option, value)  # checks file types and formats for api
 
         data = {
             "attribute": option,
@@ -227,7 +217,6 @@ class GofileClient (object):
 
         resp = requests.put(GofileClient._API_ROUTE_SET_OPTION_URL.format(content_id), data=data, headers=headers)
         got = GofileClient.handle_response(resp)
-
 
     def copy_content(self, *content_ids: str, parent_id: str = None, token: str = None):
         """Copy provided content_ids to destination folder's content_id.  Currently returns None because api doesn't return any information.  Will have to query parent folder"""
@@ -244,7 +233,7 @@ class GofileClient (object):
 
         resp = requests.post(GofileClient._API_ROUTE_COPY_CONTENT_URL, data=data, headers=headers)
         got = GofileClient.handle_response(resp)
-        
+
         """
         As of right now /copyContent does not return information about newly created content
         For this reason copy_content will just return None
@@ -265,7 +254,8 @@ class GofileClient (object):
         resp = requests.post(GofileClient._API_ROUTE_CREATE_FOLDER_URL, data=data, headers=headers)
         got = GofileClient.handle_response(resp)
 
-        return GofileContent.__init_from_resp__(resp, client=self) 
+        return GofileContent.__init_from_resp__(resp, client=self)
+
 
 class GofileAccount (object):
     token: str
@@ -310,7 +300,7 @@ class GofileAccount (object):
 
     @staticmethod
     def _load_from_account_id(account_id: str, token: str):
-        headers = GofileClient.create_authorization_header(token) 
+        headers = GofileClient.create_authorization_header(token)
         resp = requests.get(
             GofileClient._API_ROUTE_GET_ACCOUNT_URL.format(account_id),
             headers=headers
@@ -318,17 +308,17 @@ class GofileAccount (object):
         data = GofileClient.handle_response(resp)
         return GofileAccount._load_from_dict(data)
 
-
     @staticmethod
     def _load_from_dict(data: dict):
         account = GofileAccount(data["token"])
         account._override_from_dict(data)
         return account
-    
+
     def reload(self):
         resp, data = self._client._get_account_raw_resp(token=self.token)
         self._override_from_dict(data)
         self._raw = data
+
 
 class GofileContent (object):
     name: str
@@ -357,40 +347,40 @@ class GofileContent (object):
 
         self.is_file_type = _type == "file"
         self.is_folder_type = _type == "folder"
-        self.is_unknown_type = _type == None
+        self.is_unknown_type = _type is None
         self.name = None
         self.time_created = None
         self.is_deleted = False
 
-    def __repr__ (self) -> str:
+    def __repr__(self) -> str:
         _type = self._type
         if not _type:
             _type = "Unknown"
 
         return "<Gofile {}: content_id={} name={}>".format(_type.upper(), self.content_id, self.name)
 
-    def delete (self) -> None:
+    def delete(self) -> None:
         """Deletes itself.  When called successfully is_deleted = True"""
         guest_token = self._raw.get("guestToken")
         self._client.delete(self.content_id, token=guest_token)
         self.is_deleted = True
 
-    def copy_to (self, dest_id: str) -> None:
+    def copy_to(self, dest_id: str) -> None:
         """Copies itself to destination folder's content_id"""
         self._client.copy_content(self.content_id, parent_id=dest_id)
 
-    def copy (self, dest_id: str) -> None:
+    def copy(self, dest_id: str) -> None:
         self.copy_to(dest_id)
 
     def set_option(self, option: str, value, reload: bool = True) -> None:
         """Sets content option.  Full option list available at m0bb1n.github.io/gofilepy/gofilepy/options.html"""
         self._client.set_content_option(self.content_id, option, value)
         if reload:
-            self.reload() #reload to get up to date information
+            self.reload()  # reload to get up to date information
 
-    def reload (self):
+    def reload(self):
         """Reloads any new updates to content.  If is_unknown_type must call reload() before fully usable"""
-        if self.is_folder_type or (self.is_unknown_type and self.parent_id == None):
+        if self.is_folder_type or (self.is_unknown_type and self.parent_id is None):
             resp, data = self._client._get_content_raw_resp(self.content_id)
 
             if self.is_unknown_type:
@@ -399,14 +389,14 @@ class GofileContent (object):
             elif self.is_folder_type:
                 self._override_from_dict(data)
                 return self
-        
+
         elif (self.is_unknown_type or self.is_file_type) and self.parent_id:
             resp, data = self._client._get_content_raw_resp(self.parent_id)
             content_data = data["contents"].get(self.content_id, None)
 
             if content_data:
                 if self.is_unknown_type:
-                    #re-init instance as sub class (GofileFile or GofileFolder) of GofileContent
+                    # re-init instance as sub class (GofileFile or GofileFolder) of GofileContent
                     match content_data['type']:
                         case "folder":
                             self.__class__ = GofileFolder
@@ -414,7 +404,7 @@ class GofileContent (object):
                                 content_data["name"], content_data["id"],
                                 content_data["parentFolder"], client=self._client
                             )
-                        
+
                         case "file":
                             self.__class__ = GofileFile
                             self.__init__(
@@ -427,17 +417,17 @@ class GofileContent (object):
 
                 self._override_from_dict(content_data)
 
-            return self 
+            return self
 
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
     @staticmethod
-    def __init_from_resp__ (resp: requests.Response, _type: str = None, client: GofileClient = None):
-        if type(resp) == requests.models.Response:
+    def __init_from_resp__(resp: requests.Response, _type: str = None, client: GofileClient = None):
+        if isinstance(resp, requests.models.Response):
             resp = resp.json()
-            
-        got = resp["data"] 
+
+        got = resp["data"]
         _type = got.get("type", _type)
         content = None
 
@@ -446,7 +436,7 @@ class GofileContent (object):
         elif _type == "folder":
             content = GofileFolder._load_from_dict(got, client=client)
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         return content
 
@@ -476,8 +466,8 @@ class GofileFileDirectLink (object):
         self.file = file
 
     @classmethod
-    def _load_from_dict (cls, data: dict, file=None):
-        #change to load/override from dict
+    def _load_from_dict(cls, data: dict, file=None):
+        # change to load/override from dict
         link = cls(
             data["id"],
             data["directLink"],
@@ -490,9 +480,10 @@ class GofileFileDirectLink (object):
             link.username = data["auth"][0]
             link.password = data["auth"][1]
 
-        link._raw = data 
+        link._raw = data
 
         return link
+
 
 class GofileFile (GofileContent):
     time_created: int
@@ -515,7 +506,7 @@ class GofileFile (GofileContent):
 
     def __init__(self, content_id: str, parent_id: str, client: GofileClient = None):
         super().__init__(content_id, parent_id, _type="file", client=client)
-        self.name = None 
+        self.name = None
         self.time_created = None
         self.size = None
         self.download_cnt = None
@@ -530,7 +521,7 @@ class GofileFile (GofileContent):
         self.parent_id = data.get("parentFolder", self.parent_id)
         self.name = data.get("name", self.name)
         self.time_created = data.get("createTime", self.time_created)
-        self.size  = data.get("size", self.size)
+        self.size = data.get("size", self.size)
         self.download_cnt = data.get("downloadCount", self.download_cnt)
         self.mimetype = data.get("mimetype", self.mimetype)
         self.md5 = data.get("md5", self.md5)
@@ -539,7 +530,7 @@ class GofileFile (GofileContent):
         for link_data in direct_links:
             GofileFileDirectLink._load_from_dict(link_data, file=self)
 
-        self.page_link = data.get("downloadPage", self.page_link) 
+        self.page_link = data.get("downloadPage", self.page_link)
 
         self._raw = data
 
@@ -563,10 +554,7 @@ class GofileFile (GofileContent):
             return self._client._download_file_from_direct_link(self.direct_links[0].link, out_dir=out_dir)
 
         else:
-            raise Exception("Direct link needed - set option directLink=True (only for premium users)") 
-
-
-
+            raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
 
 class GofileFolder (GofileContent):
@@ -626,13 +614,12 @@ class GofileFolder (GofileContent):
                 children.append(child)
         return children
 
-
     def _override_from_dict(self, data: dict) -> None:
         self.content_id = data.get("id", self.content_id)
         self.parent_id = data.get("parentFolder", self.parent_id)
         self.name = data.get("name", self.name)
         self.time_created = data.get("createTime", self.time_created)
-        self.is_public  = data.get("public", self.is_public)
+        self.is_public = data.get("public", self.is_public)
         self.is_owner = data.get("isOwner", self.is_owner)
         self.is_root = data.get("isRoot", False)
         self.has_password = data.get("password", self.has_password)
@@ -646,11 +633,7 @@ class GofileFolder (GofileContent):
         self.tags = data.get("tags", "").split(",")
         if self.tags[0] == "":
             self.tags = []
-
-
-
         self._raw = data
-
 
     @staticmethod
     def _load_from_dict(data: dict, client: GofileClient = None) -> GofileFolder:
@@ -663,4 +646,3 @@ class GofileFolder (GofileContent):
 
     def upload(self, path: str = None, file: BufferedReader = None) -> GofileFile:
         return self._client.upload(file=file, path=path, parent_id=self.content_id)
-
