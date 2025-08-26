@@ -29,8 +29,13 @@ packages = ["gofilepy"]
 
 [tool.flake8]
 exclude = [".git", "venv", ".venv"]
+max-line-length = 120
+max-complexity = 10
 count = true
 statistics = true
+
+[tool.ruff]
+line-length = 120
 
 [tool.ruff.lint]
 select = [
