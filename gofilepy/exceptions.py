@@ -2,7 +2,8 @@ from requests.models import Response
 
 
 class GofileAPIException (Exception):
-    """Gofile API throws an unspecified error - create an issue if on github if thrown"""
+    """Gofile API throws an unspecified error - create an issue if on github if thrown."""
+
     def __init__(self, msg, code):
         self.msg = msg
         self.code = code
@@ -35,24 +36,28 @@ class GofileAPIException (Exception):
 
 
 class GofileAPIAuthenticationError (GofileAPIException):
-    """Gofile API throws an authentication error - token is not provided or invalid"""
+    """Gofile API throws an authentication error - token is not provided or invalid."""
+
     def __init__(self, msg: str, code: int = 401):
         super().__init__(msg, code)
 
 
 class GofileAPIContentNotFoundError (GofileAPIException):
-    """Gofile API throws content not found - content_id is invalid"""
+    """Gofile API throws content not found - content_id is invalid."""
+
     def __init__(self, msg: str, code: int = 404):
         super().__init__(msg, code)
 
 
 class GofileAPINotOwnerError (GofileAPIException):
-    """Gofile API throws not owner of content - content is owned by another user"""
+    """Gofile API throws not owner of content - content is owned by another user."""
+
     def __init__(self, msg: str, code: int = 403):
         super().__init__(msg, code)
 
 
 class GofileAPINotPremiumAccountError (GofileAPIException):
-    """Gofile API throws not premium account error - upgrade at gofile.io/premium"""
+    """Gofile API throws not premium account error - upgrade at gofile.io/premium."""
+
     def __init__(self, msg: str, code: int = 403):
         super().__init__(msg, code)

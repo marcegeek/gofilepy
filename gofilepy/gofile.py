@@ -167,11 +167,11 @@ class GofileClient (object):
         return GofileContent.__init_from_resp__(resp, client=self)
 
     def get_folder(self, *args, **kwargs):
-        """Retrieves folder using content_id"""
+        """Retrieve folder using content_id."""
         return self.get(*args, **kwargs)
 
     def delete(self, *content_ids: str, token: str | None = None):
-        """Calls Gofile API to delete provided content_ids."""
+        """Call Gofile API to delete provided content_ids."""
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
         data = {"contentsId": ",".join(content_ids), "token": token}
@@ -190,7 +190,12 @@ class GofileClient (object):
         pass
 
     def get_account(self, token: str | None = None) -> GofileAccount:
-        """If token is provided returns specified account, otherwise token defaults to self.token.
+        """Get an account.
+
+        If token is provided return specified account, otherwise token defaults to self.token.
+        If token is default self.account is updated.
+        """
+        """If token is provided return specified account, otherwise token defaults to self.token.
            If token is default self.account is updated"""
         token = self._get_token(token)
         resp, data = self._get_account_raw_resp(token=token)
@@ -204,7 +209,10 @@ class GofileClient (object):
         return account
 
     def set_content_option(self, content_id: str, option: str, value, token: str | None = None):
-        """Sets content option like 'description', 'public', etc (more at gofile.io/api).  Note that folder and file content have different options"""
+        """Set content option like 'description', 'public', etc (more at gofile.io/api).
+
+        Note that folder and file content have different options.
+        """
         token = self._get_token(token)
         headers = self.create_authorization_header(token)
 
@@ -219,7 +227,10 @@ class GofileClient (object):
         got = GofileClient.handle_response(resp)
 
     def copy_content(self, *content_ids: str, parent_id: str | None = None, token: str | None = None):
-        """Copy provided content_ids to destination folder's content_id.  Currently returns None because api doesn't return any information.  Will have to query parent folder"""
+        """Copy provided content_ids to destination folder's content_id.
+
+        Currently, returns None because API doesn't return any information. Will have to query parent folder.
+        """
         if not parent_id:
             raise ValueError("Must pass a parent folder id: parent_id=None")
 
@@ -242,7 +253,7 @@ class GofileClient (object):
         """
 
     def create_folder(self, name: str, parent_id: str, token: str | None = None):
-        """Creates folder in specified parent folder's content_id"""
+        """Create folder in specified parent folder's content_id."""
         token = self._get_token(token)
         headers = self.create_authorization_header(token)
 
@@ -360,26 +371,29 @@ class GofileContent (object):
         return "<Gofile {}: content_id={} name={}>".format(_type.upper(), self.content_id, self.name)
 
     def delete(self) -> None:
-        """Deletes itself.  When called successfully is_deleted = True"""
+        """Delete itself.
+
+        When called successfully is_deleted = True.
+        """
         guest_token = self._raw.get("guestToken")
         self._client.delete(self.content_id, token=guest_token)
         self.is_deleted = True
 
     def copy_to(self, dest_id: str) -> None:
-        """Copies itself to destination folder's content_id"""
+        """Copy itself to destination folder's content_id."""
         self._client.copy_content(self.content_id, parent_id=dest_id)
 
     def copy(self, dest_id: str) -> None:
         self.copy_to(dest_id)
 
     def set_option(self, option: str, value, reload: bool = True) -> None:
-        """Sets content option.  Full option list available at m0bb1n.github.io/gofilepy/gofilepy/options.html"""
+        """Set content option.  Full option list available at m0bb1n.github.io/gofilepy/gofilepy/options.html."""
         self._client.set_content_option(self.content_id, option, value)
         if reload:
             self.reload()  # reload to get up to date information
 
     def reload(self):
-        """Reloads any new updates to content.  If is_unknown_type must call reload() before fully usable"""
+        """Reload any new updates to content. If is_unknown_type must call reload() before fully usable."""
         if self.is_folder_type or (self.is_unknown_type and self.parent_id is None):
             resp, data = self._client._get_content_raw_resp(self.content_id)
 
@@ -547,9 +561,10 @@ class GofileFile (GofileContent):
         return data
 
     def download(self, out_dir: str = "./") -> str:
-        """Downloads file to passed dir (default is working directory). Note: The option directLink
-          \needs to be True (Premium)"""
+        """Download file to passed dir (default is working directory).
 
+        The option directLink needs to be True (Premium).
+        """
         if self.direct_links:
             return self._client._download_file_from_direct_link(self.direct_links[0].link, out_dir=out_dir)
 
