@@ -3,7 +3,7 @@ import requests
 import os
 from io import BufferedReader
 from bs4 import BeautifulSoup
-from .exceptions import GofileAPIException
+from .exceptions import GofileAPIException, GofileAPIContentNotFoundError
 from .options import FileOption, FolderOption, ContentOption
 from .util import ResponseIO
 
@@ -514,6 +514,8 @@ class GofileContent (object):
                             raise TypeError("Type '{}' is not a valid option".format(content_data['type']))
 
                 self._override_from_dict(content_data)
+            else:
+                raise GofileAPIContentNotFoundError("content not found")
 
             return self 
 
