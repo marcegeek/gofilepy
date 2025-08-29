@@ -3,6 +3,7 @@ import os
 from io import BufferedReader
 from .exceptions import GofileAPIException
 from .options import FileOption, FolderOption, ContentOption
+from .util import ResponseIO
 
 
 GofileClient = None
@@ -140,12 +141,12 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_bytes_from_direct_link(self, direct_link):
-        resp = requests.get(direct_link, allow_redirects=None)
+    def _download_io_from_direct_link(self, direct_link):
+        resp = requests.get(direct_link, stream=True, allow_redirects=None)
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        return resp.content
+        return ResponseIO(resp)
 
 
     def _get_token(self, token):
@@ -587,12 +588,12 @@ class GofileFile (GofileContent):
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
-    def download_bytes(self) -> bytes:
-        """Downloads file as bytes.
+    def download_io(self) -> ResponseIO:
+        """Downloads file as a binary file-like IO wrapper.
            Note: The option directLink needs to be True (Premium)"""
 
         if self.direct_links:
-            return self._client._download_bytes_from_direct_link(self.direct_links[0].link)
+            return self._client._download_io_from_direct_link(self.direct_links[0].link)
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
