@@ -9,7 +9,8 @@ __all__ = [
     "GofileContent",
     "GofileAccount",
     "options",
-    "exceptions"
+    "exceptions",
+    "util",
 ]
 
 from .gofile import GofileClient, GofileFolder, GofileFile, GofileContent, GofileAccount 

@@ -5,6 +5,7 @@ from io import BufferedReader
 from bs4 import BeautifulSoup
 from .exceptions import GofileAPIException
 from .options import FileOption, FolderOption, ContentOption
+from .util import ResponseIO
 
 
 GofileClient = None
@@ -169,12 +170,12 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_bytes_from_direct_link(self, direct_link):
-        resp = requests.get(direct_link, allow_redirects=None)
+    def _download_io_from_direct_link(self, direct_link):
+        resp = requests.get(direct_link, stream=True, allow_redirects=None)
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        return resp.content
+        return ResponseIO(resp)
 
     @classmethod
     def _get_download_web_link(cls, server, content_id, name):
@@ -193,12 +194,12 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_bytes_from_web_link(self, link):
-        resp = requests.get(link, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
+    def _download_io_from_web_link(self, link):
+        resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        return resp.content
+        return ResponseIO(resp)
 
     def _get_token(self, token):
         if not token:
@@ -654,13 +655,13 @@ class GofileFile (GofileContent):
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
-    def download_bytes(self) -> bytes:
-        """Downloads file as bytes."""
+    def download_io(self) -> ResponseIO:
+        """Downloads file as a binary file-like IO wrapper."""
 
         if self.direct_links:
-            return self._client._download_bytes_from_direct_link(self.direct_links[0].link)
+            return self._client._download_io_from_direct_link(self.direct_links[0].link)
         elif self.link:
-            return self._client._download_bytes_from_web_link(self.link)
+            return self._client._download_io_from_web_link(self.link)
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
