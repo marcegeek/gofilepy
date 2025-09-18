@@ -8,8 +8,11 @@ class GofileAPIException (Exception):
     @classmethod
     def __init_from_resp__ (cls, resp: Response):
         code = resp.status_code
-        resp = resp.json()
-        status = resp['status']
+        try:
+            data = resp.json()
+            status = data['status']
+        except ValueError:
+            status = f"server-error: {resp.reason}"
 
         if status == "error-auth":
             return GofileAPIAuthenticationError(status, code=code)
@@ -23,7 +26,7 @@ class GofileAPIException (Exception):
         elif status == "error-notPremium":
             return GofileAPINotPremiumAccountError(status)
         
-        return cls(status, code) 
+        return cls(status, code)
 
     def __repr__ (self):
         return "{} {} {}".format(self.__class__, self.code, self.msg)
