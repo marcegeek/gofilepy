@@ -69,7 +69,10 @@ class GofileClient (object):
     @staticmethod
     def handle_response(resp: requests.Response):
         code = resp.status_code
-        data = resp.json()
+        try:
+            data = resp.json()
+        except ValueError:
+            data = None
         got = None
         api_status = ''
 
