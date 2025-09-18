@@ -4,8 +4,8 @@ from requests import Response
 from urllib3 import HTTPResponse
 
 
-class ResponseIO:
-    def __init__(self, resp: Response) -> None:
+class ResponseIO(io.IOBase):
+    def __init__(self, resp: Response, encoding: str | None = None) -> None:
         self._resp = resp
         self._file: HTTPResponse | io.BytesIO
         if not self._resp.raw.closed:
@@ -13,16 +13,22 @@ class ResponseIO:
         else:
             # if raw object is closed assume stream=False and create a BytesIO buffer with the content
             self._file = io.BytesIO(self._resp.content)
+        self.encoding = encoding if encoding is not None else self._resp.encoding
 
     @property
     def status_code(self) -> int:
         return self._resp.status_code
 
     def read(self, amount: int | None = None) -> bytes:
+        if self._file.closed:
+            return b''
         if isinstance(self._file, HTTPResponse):
             return self._file.read(amount, decode_content=True)
         else:
             return self._file.read(amount)
+
+    def readable(self):
+        return True
 
     def close(self) -> None:
         # close response to close the raw object if necessary and release the connection
@@ -30,10 +36,7 @@ class ResponseIO:
         if isinstance(self._file, io.BytesIO):
             # close the BytesIO buffer if created
             self._file.close()
-
-    @property
-    def closed(self) -> bool:
-        return self._file.closed
+        super().close()
 
     def __enter__(self):
         return self

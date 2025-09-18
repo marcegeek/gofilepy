@@ -2,7 +2,11 @@ import re
 import requests
 import os
 from io import BufferedReader
+
 from bs4 import BeautifulSoup
+from requests.structures import CaseInsensitiveDict
+from requests.utils import get_encoding_from_headers
+
 from .exceptions import GofileAPIException, GofileAPIContentNotFoundError
 from .options import FileOption, FolderOption, ContentOption
 from .util import ResponseIO
@@ -170,12 +174,13 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_io_from_direct_link(self, direct_link):
+    def _download_io_from_direct_link(self, direct_link, mimetype=None):
         resp = requests.get(direct_link, stream=True, allow_redirects=None)
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        return ResponseIO(resp)
+        headers = CaseInsensitiveDict({'Content-Type': mimetype})
+        return ResponseIO(resp, encoding=get_encoding_from_headers(headers))
 
     @classmethod
     def _get_download_web_link(cls, server, content_id, name):
@@ -194,12 +199,13 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_io_from_web_link(self, link):
+    def _download_io_from_web_link(self, link, mimetype=None):
         resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        return ResponseIO(resp)
+        headers = CaseInsensitiveDict({'Content-Type': mimetype})
+        return ResponseIO(resp, encoding=get_encoding_from_headers(headers))
 
     def _get_token(self, token):
         if not token:
@@ -661,9 +667,9 @@ class GofileFile (GofileContent):
         """Downloads file as a binary file-like IO wrapper."""
 
         if self.direct_links:
-            return self._client._download_io_from_direct_link(self.direct_links[0].link)
+            return self._client._download_io_from_direct_link(self.direct_links[0].link, mimetype=self.mimetype)
         elif self.link:
-            return self._client._download_io_from_web_link(self.link)
+            return self._client._download_io_from_web_link(self.link, mimetype=self.mimetype)
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
