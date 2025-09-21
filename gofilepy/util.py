@@ -4,7 +4,7 @@ from requests import Response
 from urllib3 import HTTPResponse
 
 
-class ResponseIO(io.IOBase):
+class ResponseIO(io.BufferedIOBase):
     def __init__(self, resp: Response, encoding: str | None = None) -> None:
         self._resp = resp
         self._file: HTTPResponse | io.BytesIO
