@@ -177,13 +177,12 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_io_from_direct_link(self, direct_link, mimetype=None):
+    def _download_io_from_direct_link(self, direct_link, encoding=None):
         resp = requests.get(direct_link, stream=True, allow_redirects=None)
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        headers = CaseInsensitiveDict({'Content-Type': mimetype})
-        return ResponseIO(resp, encoding=get_encoding_from_headers(headers))
+        return ResponseIO(resp, encoding=encoding)
 
     @classmethod
     def _get_download_web_link(cls, server, content_id, name):
@@ -202,13 +201,12 @@ class GofileClient (object):
                     f.write(chunk)
         return out_path
 
-    def _download_io_from_web_link(self, link, mimetype=None):
+    def _download_io_from_web_link(self, link, encoding=None):
         resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
-        headers = CaseInsensitiveDict({'Content-Type': mimetype})
-        return ResponseIO(resp, encoding=get_encoding_from_headers(headers))
+        return ResponseIO(resp, encoding=encoding)
 
     def _get_token(self, token):
         if not token:
@@ -602,6 +600,8 @@ class GofileFile (GofileContent):
     """Amount of times the file has been downloaded"""
     mimetype: str
     """Mimetype of file"""
+    encoding: str | None
+    """Encoding of file (for plain text)"""
     server: str
     """subdomain server from where file will be downloaded (Premium)"""
     page_link: str
@@ -619,6 +619,7 @@ class GofileFile (GofileContent):
         self.size = None
         self.download_cnt = None
         self.mimetype = None
+        self.encoding = None
         self.server = None
         self.link = None
         self.page_link = None
@@ -633,6 +634,7 @@ class GofileFile (GofileContent):
         self.size  = data.get("size", self.size)
         self.download_cnt = data.get("downloadCount", self.download_cnt)
         self.mimetype = data.get("mimetype", self.mimetype)
+        self.encoding = self._get_encoding()
         self.md5 = data.get("md5", self.md5)
         self.server = data.get("serverSelected", None)
         self.link = data.get("link", self._client._get_download_web_link(self.server, self.content_id, self.name) if self.server is not None else None)
@@ -650,6 +652,10 @@ class GofileFile (GofileContent):
         file._override_from_dict(data)
         file._raw = data
         return file
+
+    def _get_encoding(self):
+       headers = CaseInsensitiveDict({'Content-Type': self.mimetype})
+       return get_encoding_from_headers(headers)
 
     def create_direct_link(self, *args, **kwargs):
         data = self._client.create_file_direct_link(self.content_id, *args, file=self, **kwargs)
@@ -670,9 +676,9 @@ class GofileFile (GofileContent):
         """Downloads file as a binary file-like IO wrapper."""
 
         if self.direct_links:
-            return self._client._download_io_from_direct_link(self.direct_links[0].link, mimetype=self.mimetype)
+            return self._client._download_io_from_direct_link(self.direct_links[0].link, encoding=self.encoding)
         elif self.link:
-            return self._client._download_io_from_web_link(self.link, mimetype=self.mimetype)
+            return self._client._download_io_from_web_link(self.link, encoding=self.encoding)
         else:
             raise Exception("Direct link needed - set option directLink=True (only for premium users)")
 
