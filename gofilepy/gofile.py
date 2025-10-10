@@ -1,9 +1,7 @@
-import re
 import requests
 import os
 from io import BufferedReader
 
-from bs4 import BeautifulSoup
 from requests.structures import CaseInsensitiveDict
 from requests.utils import get_encoding_from_headers
 
@@ -24,8 +22,7 @@ class GofileClient (object):
     _API_SUBDOMAIN = 'api'
     _BASE_API_URL = 'https://'+_API_SUBDOMAIN+'.'+_BASE_DOMAIN
     _BASE_WEB_URL = 'https://'+_BASE_DOMAIN
-    _WEBTOKEN_REGEX = re.compile(r'\bwt\s*=\s*"(.+)"')
-    _WEBTOKEN = None
+    _WEBTOKEN = '4fd6sg89d7s6'
 
     _API_ROUTE_GET_SERVER_URL = _BASE_API_URL + '/servers'
 
@@ -74,27 +71,6 @@ class GofileClient (object):
 
         guest = cls.create_guest_account()
         return cls(token=guest.token)
-
-    @classmethod
-    def _get_webtoken(cls):
-        resp = requests.get(cls._BASE_WEB_URL)
-        if resp.status_code != 200:
-            raise Exception("no gofile base")
-        html = resp.text
-        soup = BeautifulSoup(html, features='html.parser')
-        scripts = soup.find_all('script')
-        for script in scripts:
-            content = None
-            src = script.get('src')
-            if src and src.startswith('/'):
-                src = f'{cls._BASE_WEB_URL}{src}'
-                content = requests.get(src).text
-            elif not src:
-                content = script.text
-            if content:
-                match = cls._WEBTOKEN_REGEX.search(content)
-                if match:
-                    return match.group(1)
 
     @staticmethod
     def create_authorization_header(token):
@@ -349,7 +325,6 @@ class GofileClient (object):
         got = GofileClient.handle_response(resp)
 
         return GofileContent.__init_from_resp__(resp, client=self) 
-GofileClient._WEBTOKEN = GofileClient._get_webtoken()
 
 class GofileAccount (object):
     token: str
