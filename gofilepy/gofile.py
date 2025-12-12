@@ -225,8 +225,9 @@ class GofileClient (object):
     def _get_content_raw_resp(self, content_id: str, token: str = None):
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
+        headers['X-Website-Token'] = self._WEBTOKEN
 
-        resp = requests.get(self._API_ROUTE_GET_CONTENT_URL.format(content_id) + f'?wt={self._WEBTOKEN}', headers=headers)
+        resp = requests.get(self._API_ROUTE_GET_CONTENT_URL.format(content_id), headers=headers)
         data = GofileClient.handle_response(resp)
         return resp, data
 
