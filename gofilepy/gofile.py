@@ -1,5 +1,7 @@
+import hashlib
 import requests
 import os
+import time
 from io import BufferedReader
 
 from requests.structures import CaseInsensitiveDict
@@ -22,7 +24,10 @@ class GofileClient (object):
     _API_SUBDOMAIN = 'api'
     _BASE_API_URL = 'https://'+_API_SUBDOMAIN+'.'+_BASE_DOMAIN
     _BASE_WEB_URL = 'https://'+_BASE_DOMAIN
-    _WEBTOKEN = '4fd6sg89d7s6'
+    _DEFAULT_HEADERS = {
+        # a pretty common user agent, mostly for /contents/<content_id> but used in most requests for consistency
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+    }
 
     _API_ROUTE_GET_SERVER_URL = _BASE_API_URL + '/servers'
 
@@ -72,9 +77,20 @@ class GofileClient (object):
         guest = cls.create_guest_account()
         return cls(token=guest.token)
 
+    # Based on https://github.com/yt-dlp/yt-dlp/pull/16193/changes/88ba183b672f953b4a34ebee417a4f7f7bef3ebe
+    # and https://github.com/anasty17/mirror-leech-telegram-bot/commit/feac70dbef602c1c5a156ce7ec9ee4a89fdb11ae
     @staticmethod
-    def create_authorization_header(token):
-        return {"Authorization": f"Bearer {token}"}
+    def _generate_webtoken(token, user_agent, language):
+        time_slot = int(time.time() / 14400)
+        hash_salt = 'gf2026x'
+        data = f'{user_agent}::{language}::{token}::{time_slot}::{hash_salt}'
+        return hashlib.sha256(data.encode()).hexdigest()
+
+    @classmethod
+    def create_authorization_header(cls, token):
+        headers = cls._DEFAULT_HEADERS.copy()
+        headers['Authorization'] = f"Bearer {token}"
+        return headers
 
     @staticmethod
     def handle_response(resp: requests.Response):
@@ -166,7 +182,9 @@ class GofileClient (object):
 
     def _download_file_from_web_link(self, link, out_dir="./"):
         fn = link.rsplit('/', 1)[1]
-        resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
+        headers = self._DEFAULT_HEADERS.copy()
+        headers['Cookie'] = f'accountToken={self.token}'
+        resp = requests.get(link, stream=True, allow_redirects=None, headers=headers)
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
@@ -178,7 +196,9 @@ class GofileClient (object):
         return out_path
 
     def _download_io_from_web_link(self, link, encoding=None):
-        resp = requests.get(link, stream=True, allow_redirects=None, headers={'Cookie': f'accountToken={self.token}'})
+        headers = self._DEFAULT_HEADERS.copy()
+        headers['Cookie'] = f'accountToken={self.token}'
+        resp = requests.get(link, stream=True, allow_redirects=None, headers=headers)
         if resp.status_code != 200:
             raise GofileAPIException("Could not download file", code=resp.status_code)
 
@@ -197,7 +217,7 @@ class GofileClient (object):
 
         upload_url = self.get_best_upload_url()
         token = self._get_token(token)
-        headers = {}
+        headers = self._DEFAULT_HEADERS
         if token:
             headers = self.create_authorization_header(token)
 
@@ -225,7 +245,12 @@ class GofileClient (object):
     def _get_content_raw_resp(self, content_id: str, token: str = None):
         token = self._get_token(token)
         headers = GofileClient.create_authorization_header(token)
-        headers['X-Website-Token'] = self._WEBTOKEN
+        user_agent = headers['User-Agent']  # user agent already copied from default headers
+        # Based on https://github.com/yt-dlp/yt-dlp/pull/16193/changes/88ba183b672f953b4a34ebee417a4f7f7bef3ebe
+        # and https://github.com/anasty17/mirror-leech-telegram-bot/commit/feac70dbef602c1c5a156ce7ec9ee4a89fdb11ae
+        language = 'en-US'
+        headers['X-Website-Token'] = self._generate_webtoken(token, user_agent, language)
+        headers['X-BL'] = language
 
         resp = requests.get(self._API_ROUTE_GET_CONTENT_URL.format(content_id), headers=headers)
         data = GofileClient.handle_response(resp)
