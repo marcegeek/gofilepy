@@ -78,11 +78,12 @@ class GofileClient (object):
         return cls(token=guest.token)
 
     # Based on https://github.com/yt-dlp/yt-dlp/pull/16193/changes/88ba183b672f953b4a34ebee417a4f7f7bef3ebe
-    # and https://github.com/anasty17/mirror-leech-telegram-bot/commit/feac70dbef602c1c5a156ce7ec9ee4a89fdb11ae
+    # and https://github.com/anasty17/mirror-leech-telegram-bot/commit/feac70dbef602c1c5a156ce7ec9ee4a89fdb11ae,
+    # also https://github.com/yt-dlp/yt-dlp/pull/16193#discussion_r3004468943
     @staticmethod
     def _generate_webtoken(token, user_agent, language):
         time_slot = int(time.time() / 14400)
-        hash_salt = 'gf2026x'
+        hash_salt = '5d4f7g8sd45fsd'
         data = f'{user_agent}::{language}::{token}::{time_slot}::{hash_salt}'
         return hashlib.sha256(data.encode()).hexdigest()
 
