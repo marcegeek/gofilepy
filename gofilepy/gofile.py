@@ -4,6 +4,7 @@ import os
 import time
 from io import BufferedReader
 
+import quickjs
 from requests.structures import CaseInsensitiveDict
 from requests.utils import get_encoding_from_headers
 
@@ -23,7 +24,7 @@ class GofileClient (object):
     _BASE_DOMAIN = 'gofile.io'
     _API_SUBDOMAIN = 'api'
     _BASE_API_URL = 'https://'+_API_SUBDOMAIN+'.'+_BASE_DOMAIN
-    _BASE_WEB_URL = 'https://'+_BASE_DOMAIN
+    _WEBTOKEN_JS_URL = 'https://'+_BASE_DOMAIN+'/dist/js/wt.obf.js'
     _DEFAULT_HEADERS = {
         # a pretty common user agent, mostly for /contents/<content_id> but used in most requests for consistency
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
@@ -77,15 +78,18 @@ class GofileClient (object):
         guest = cls.create_guest_account()
         return cls(token=guest.token)
 
-    # Based on https://github.com/yt-dlp/yt-dlp/pull/16193/changes/88ba183b672f953b4a34ebee417a4f7f7bef3ebe
-    # and https://github.com/anasty17/mirror-leech-telegram-bot/commit/feac70dbef602c1c5a156ce7ec9ee4a89fdb11ae,
-    # also https://github.com/yt-dlp/yt-dlp/pull/16193#discussion_r3004468943
-    @staticmethod
-    def _generate_webtoken(token, user_agent, language):
-        time_slot = int(time.time() / 14400)
-        hash_salt = '5d4f7g8sd45fsd'
-        data = f'{user_agent}::{language}::{token}::{time_slot}::{hash_salt}'
-        return hashlib.sha256(data.encode()).hexdigest()
+    @classmethod
+    def _generate_webtoken(cls, token, user_agent, language):
+        resp = requests.get(cls._WEBTOKEN_JS_URL)
+        if resp.status_code != 200:
+            raise Exception("no gofile webtoken JS")
+        js_code = resp.text
+        # create JS context so preconditions can be established
+        js_context = quickjs.Context()
+        # the generateWT function depends on both navigator.userAgent and navigator.language
+        js_context.eval(f"navigator = {{'userAgent': '{user_agent}', 'language': '{language}'}};")
+        js_context.eval(js_code)
+        return js_context.eval(f'generateWT({token!r})')
 
     @classmethod
     def create_authorization_header(cls, token):

@@ -15,6 +15,7 @@ setuptools.setup(
     url = "https://github.com/m0bb1n/gofilepy",
     packages = setuptools.find_packages(),
     install_requires = [
+        'quickjs',
         'requests',
     ],
     classifiers = [
