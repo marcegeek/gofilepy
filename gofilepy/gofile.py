@@ -24,7 +24,7 @@ class GofileClient (object):
     _BASE_DOMAIN = 'gofile.io'
     _API_SUBDOMAIN = 'api'
     _BASE_API_URL = 'https://'+_API_SUBDOMAIN+'.'+_BASE_DOMAIN
-    _WEBTOKEN_JS_URL = 'https://'+_BASE_DOMAIN+'/dist/js/wt.obf.js'
+    _WEBTOKEN_JS_URL = 'https://'+_BASE_DOMAIN+'/js/wt.obf.js'
     _DEFAULT_HEADERS = {
         # a pretty common user agent, mostly for /contents/<content_id> but used in most requests for consistency
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
